@@ -1,6 +1,7 @@
 const path = require('path');
 
 const {
+  HOME_INSTALL_EXCLUDED_SOURCE_PATHS,
   createInstallTargetAdapter,
   createRemappedOperation,
   isForeignPlatformPath,
@@ -52,6 +53,7 @@ module.exports = createInstallTargetAdapter({
   kind: 'home',
   rootSegments: ['.claude'],
   installStatePathSegments: ['ecc', 'install-state.json'],
+  excludedSourcePaths: HOME_INSTALL_EXCLUDED_SOURCE_PATHS,
   nativeRootRelativePath: '.claude-plugin',
   planOperations(input, adapter) {
     const modules = Array.isArray(input.modules)
@@ -63,10 +65,10 @@ module.exports = createInstallTargetAdapter({
       homeDir: input.homeDir,
     };
 
-    return modules.flatMap(module => {
+    const operations = modules.flatMap(module => {
       const paths = Array.isArray(module.paths) ? module.paths : [];
       return paths
-        .filter(p => !isForeignPlatformPath(p, adapter.target))
+        .filter(p => !isForeignPlatformPath(p, adapter.target) && !adapter.excludesSourcePath(p))
         .flatMap(sourceRelativePath => {
           if (
             module.id === 'hooks-runtime'
@@ -94,5 +96,14 @@ module.exports = createInstallTargetAdapter({
           return [adapter.createScaffoldOperation(module.id, sourceRelativePath, planningInput)];
         });
     });
+    if (!operations.some(operation => operation.moduleId === 'commands-core'
+      && normalizeRelativePath(operation.sourceRelativePath).startsWith('scripts/'))) return operations;
+    return [...operations, createRemappedOperation(
+      adapter,
+      'commands-core',
+      'manifests/install-assets/commonjs-scripts-package.json',
+      path.join(adapter.resolveRoot(planningInput), 'scripts', 'package.json'),
+      { strategy: 'preserve-relative-path' }
+    )];
   },
 });

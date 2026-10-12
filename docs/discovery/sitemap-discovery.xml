@@ -31,6 +31,16 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ecc.tools/skills/agent-runtime-gateway-smoke-test</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ecc.tools/skills/agent-security-hardening</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ecc.tools/skills/agent-self-evaluation</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -126,6 +136,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ecc.tools/skills/bengali-nlp</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ecc.tools/skills/blender-motion-state-inspection</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -146,6 +161,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ecc.tools/skills/brownfield-retrospective</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ecc.tools/skills/browser-qa</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -162,6 +182,11 @@
   </url>
   <url>
     <loc>https://ecc.tools/skills/carrier-relationship-management</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ecc.tools/skills/change-impact</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -251,6 +276,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ecc.tools/skills/context-and-decisions</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ecc.tools/skills/context-budget</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -272,6 +302,11 @@
   </url>
   <url>
     <loc>https://ecc.tools/skills/contract-first</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ecc.tools/skills/conventional-commit-review</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -361,6 +396,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ecc.tools/skills/deepseek-harness-setup</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ecc.tools/skills/defi-amm-security</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -417,6 +457,11 @@
   </url>
   <url>
     <loc>https://ecc.tools/skills/docker-patterns</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ecc.tools/skills/docs-governance</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -661,6 +706,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ecc.tools/skills/i18n-sync</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ecc.tools/skills/inherit-legacy-style</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -856,6 +906,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ecc.tools/skills/mcp-dependency-review</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ecc.tools/skills/mcp-server-patterns</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -876,6 +931,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ecc.tools/skills/module-regression</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ecc.tools/skills/motion-advanced</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -887,6 +947,11 @@
   </url>
   <url>
     <loc>https://ecc.tools/skills/motion-patterns</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ecc.tools/skills/mybatis-patterns</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -996,6 +1061,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ecc.tools/skills/osint-investigation</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ecc.tools/skills/parallel-execution-optimizer</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -1072,6 +1142,11 @@
   </url>
   <url>
     <loc>https://ecc.tools/skills/project-flow-ops</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ecc.tools/skills/prompt-caching-strategy</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1271,6 +1346,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ecc.tools/skills/skill-host-compat</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ecc.tools/skills/skill-scout</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -1307,6 +1387,11 @@
   </url>
   <url>
     <loc>https://ecc.tools/skills/springboot-verification</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ecc.tools/skills/story-lifecycle</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1381,12 +1466,22 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ecc.tools/skills/test-collaboration</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ecc.tools/skills/tinystruct-patterns</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://ecc.tools/skills/token-budget-advisor</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ecc.tools/skills/token-card</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1476,6 +1571,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ecc.tools/agents/bengali-reviewer</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ecc.tools/agents/build-error-resolver</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -1507,6 +1607,11 @@
   </url>
   <url>
     <loc>https://ecc.tools/agents/comment-analyzer</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ecc.tools/agents/commit-reviewer</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -1741,6 +1846,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ecc.tools/agents/ruby-reviewer</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ecc.tools/agents/rust-build-resolver</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
@@ -1802,6 +1912,11 @@
   </url>
   <url>
     <loc>https://ecc.tools/commands/aside</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ecc.tools/commands/astra-review</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -2251,7 +2366,17 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://ecc.tools/commands/skill-host-compat</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://ecc.tools/commands/test-coverage</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ecc.tools/commands/token-card</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
