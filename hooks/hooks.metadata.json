@@ -154,7 +154,7 @@
       {
         "id": "session:end:feedback",
         "description": "Ask working installs for feedback at two session milestones, at most once each",
-        "fingerprint": "c5e707eb2f84"
+        "fingerprint": "32f7ad3b6114"
       }
     ]
   }

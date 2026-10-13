@@ -6,6 +6,17 @@
  * lib/success-feedback.js, prints one short prompt to stderr. It never blocks,
  * never uploads anything, and never reads project files.
  *
+ * Delivery contract (Claude Code): this hook runs synchronously on SessionEnd,
+ * whose stderr the host shows to the user ("Shows stderr to user only") while
+ * discarding JSON output fields. Async delivery would only reach Claude while
+ * a session runs, so an async SessionEnd prompt could be silently lost while
+ * its milestone was already consumed -- hence synchronous + stderr. The
+ * milestone is recorded only once the prompt text is composed and ready to
+ * return; a crash before that point stays retry-eligible. Host-side display
+ * failures after a clean exit are not observable from here, so the guarantee
+ * is at-most-once claims (never duplicate prompts from concurrent sessions),
+ * not exactly-once user-visible delivery.
+ *
  * Opt out with ECC_NO_FEEDBACK_PROMPT=1.
  */
 
@@ -19,6 +30,68 @@ const { writeFileAtomic } = require('../lib/atomic-write');
 const { emptyState, isOptedOut, recordMilestone, selectMilestone, successFeedbackLines } = require('../lib/success-feedback');
 
 const STATE_FILENAME = '.ecc-success-feedback.json';
+
+// Serialize the read-select-write transition across concurrent SessionEnd
+// processes: atomic file replacement alone cannot stop two processes from
+// reading the same unprompted milestone and both printing it. The lock is a
+// directory (mkdir is atomic on every platform, unlike O_EXCL files on
+// Windows network shares) with a stale-expiry so a crashed holder cannot
+// silence prompts forever. Failing to lock means another process is claiming
+// right now — it will print, so we stay silent.
+const LOCK_DIRNAME = `${STATE_FILENAME}.lock`;
+const LOCK_STALE_MS = 10_000;
+const LOCK_ATTEMPTS = 20;
+const LOCK_RETRY_MS = 25;
+
+function lockDirPath() {
+  return path.join(getSessionsDir(), LOCK_DIRNAME);
+}
+
+function sleepSync(ms) {
+  try {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+  } catch {
+    // No monotonic sleep available; fall through and retry immediately.
+  }
+}
+
+function acquireLock() {
+  try {
+    if (!fs.existsSync(getSessionsDir())) {
+      return false;
+    }
+  } catch {
+    return false;
+  }
+
+  const dir = lockDirPath();
+  for (let attempt = 0; attempt < LOCK_ATTEMPTS; attempt += 1) {
+    try {
+      fs.mkdirSync(dir);
+      return true;
+    } catch {
+      // Already held (or sessions dir vanished mid-loop); maybe steal it.
+    }
+    try {
+      if (Date.now() - fs.statSync(dir).mtimeMs > LOCK_STALE_MS) {
+        fs.rmSync(dir, { recursive: true, force: true });
+        continue;
+      }
+    } catch {
+      // Lost a race or the sessions dir is gone; retry or give up below.
+    }
+    sleepSync(LOCK_RETRY_MS);
+  }
+  return false;
+}
+
+function releaseLock() {
+  try {
+    fs.rmdirSync(lockDirPath());
+  } catch {
+    // Best effort: a stale lock expires on its own via LOCK_STALE_MS.
+  }
+}
 
 // Real session records are written as `*-session.tmp` (see session-manager.js);
 // `.tmp` is a historical naming choice, not a transient file. Counting `.md`
@@ -77,18 +150,29 @@ function run() {
     return { exitCode: 0 };
   }
 
-  const currentState = readState(stateFilePath());
-  const milestone = selectMilestone(countSessions(), currentState);
-  if (milestone === null) {
+  if (!acquireLock()) {
     return { exitCode: 0 };
   }
+  try {
+    const currentState = readState(stateFilePath());
+    const milestone = selectMilestone(countSessions(), currentState);
+    if (milestone === null) {
+      return { exitCode: 0 };
+    }
 
-  // Record before printing: a failed write must not cause a repeat prompt loop.
-  if (!writeState(stateFilePath(), recordMilestone(currentState, milestone))) {
-    return { exitCode: 0 };
+    const lines = successFeedbackLines(milestone);
+
+    // Record only once the prompt is composed and ready to return: a crash
+    // before this point stays retry-eligible, and a failed write stays
+    // silent (no prompt) so a broken disk cannot cause a repeat-prompt loop.
+    if (!writeState(stateFilePath(), recordMilestone(currentState, milestone))) {
+      return { exitCode: 0 };
+    }
+
+    return { exitCode: 0, stderr: lines.join('\n') };
+  } finally {
+    releaseLock();
   }
-
-  return { exitCode: 0, stderr: successFeedbackLines(milestone).join('\n') };
 }
 
 if (require.main === module) {
@@ -103,4 +187,4 @@ if (require.main === module) {
   process.exit(0);
 }
 
-module.exports = { run, countSessions, STATE_FILENAME };
+module.exports = { run, countSessions, STATE_FILENAME, LOCK_DIRNAME };

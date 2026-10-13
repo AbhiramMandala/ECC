@@ -41,7 +41,11 @@ function normalizeState(value) {
     return emptyState();
   }
 
-  const prompted = Array.isArray(value.prompted) ? value.prompted.filter(entry => Number.isInteger(entry)) : [];
+  // Only milestones we still recognize count: a foreign integer (e.g. from a
+  // hand-edited or future state file) must not retire every valid milestone.
+  const prompted = Array.isArray(value.prompted)
+    ? value.prompted.filter(entry => Number.isInteger(entry) && MILESTONES.includes(entry))
+    : [];
 
   return Object.freeze({ version: STATE_VERSION, prompted: Object.freeze([...prompted]) });
 }

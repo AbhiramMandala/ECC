@@ -55,13 +55,21 @@ Usage:
 }
 
 function parseArgs(argv) {
-  return argv.slice(2).reduce((parsed, arg) => {
-    if (arg === '--json') return { ...parsed, json: true };
-    if (arg === '--write') return { ...parsed, write: true };
-    if (arg === '--check') return { ...parsed, check: true };
-    if (arg === '--help' || arg === '-h') return { ...parsed, help: true };
+  const parsed = argv.slice(2).reduce((acc, arg) => {
+    if (arg === '--json') return { ...acc, json: true };
+    if (arg === '--write') return { ...acc, write: true };
+    if (arg === '--check') return { ...acc, check: true };
+    if (arg === '--help' || arg === '-h') return { ...acc, help: true };
     throw new Error(`Unknown argument: ${arg}`);
   }, { json: false, write: false, check: false, help: false });
+
+  // The actions are mutually exclusive: `--write --check` would write without
+  // checking, and `--json --write` would print without writing.
+  const actions = ['json', 'write', 'check'].filter(key => parsed[key]);
+  if (actions.length > 1) {
+    throw new Error(`Conflicting arguments: ${actions.map(key => `--${key}`).join(', ')} (choose one)`);
+  }
+  return parsed;
 }
 
 function escapeXml(value) {

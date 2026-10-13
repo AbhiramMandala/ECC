@@ -33,10 +33,12 @@ function run(args = []) {
 }
 
 let failures = 0;
+let passed = 0;
 
 function test(name, fn) {
   try {
     fn();
+    passed += 1;
     console.log(`  ✓ ${name}`);
   } catch (error) {
     failures += 1;
@@ -130,8 +132,28 @@ test('assertNoDuplicates allows distinct entries through untouched', () => {
   assert.doesNotThrow(() => assertNoDuplicates(entries));
 });
 
+test('rejects conflicting action flags', () => {
+  for (const args of [['--write', '--check'], ['--json', '--write'], ['--json', '--check']]) {
+    const result = run(args);
+    assert.strictEqual(result.code, 1, `expected exit 1 for ${args.join(' ')}`);
+    assert.ok(result.stderr.includes('Conflicting'), `expected conflict error, got: ${result.stderr}`);
+  }
+});
+
+test('parses YAML block-scalar descriptions instead of the indicator', () => {
+  // Regression: `description: >-` stored the literal `>-` as the summary.
+  const changeImpact = entries.find(entry => entry.slug === 'change-impact');
+  assert.ok(changeImpact, 'change-impact entry missing from catalog');
+  assert.ok(!/^[>|][+-]?$/.test(changeImpact.summary), `summary is a raw indicator: ${changeImpact.summary}`);
+  assert.ok(
+    changeImpact.summary.startsWith('Perform evidence-backed impact analysis'),
+    `unexpected summary: ${changeImpact.summary.slice(0, 60)}`
+  );
+});
+
+console.log(`\nResults: Passed: ${passed}, Failed: ${failures}`);
 if (failures > 0) {
-  console.log(`\n${failures} test(s) failed`);
+  console.log(`${failures} test(s) failed`);
   process.exit(1);
 }
 

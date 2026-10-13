@@ -1,8 +1,11 @@
 # Owner actions
 
-Everything in this file needs repository admin rights or access to the
-ecc.tools deployment, so it cannot ship in a pull request. Each item states the
-gap, the fix, and how to confirm it worked.
+Most items in this file need elevated rights; only the social-preview
+settings (item 1) and the `ecc.tools` deployment (items 2, 3) need repository
+admin or deployment access. Items 4 and 5 need triage permissions (merging
+needs write access), the tracking commands need push access, and items 6 and
+7 can ship in a pull request. Each item states the gap, the fix, and how to
+confirm it worked.
 
 Measured on 2026-08-31: 245,042 stars, 37,020 forks, 1,254 watchers, 323
 contributors, 16,104 monthly `ecc-universal` downloads.
@@ -85,10 +88,12 @@ context does not qualify.
 ```bash
 # What is currently open and unlabelled
 gh issue list -R affaan-m/ECC --state open --limit 100 \
-  --json number,title,labels
+  --json number,title,labels \
+  --jq '.[] | select(.labels | length == 0)'
 
 # Tag one
-gh issue edit <number> -R affaan-m/ECC --add-label "good first issue"
+ISSUE_NUMBER=123
+gh issue edit "$ISSUE_NUMBER" -R affaan-m/ECC --add-label "good first issue"
 ```
 
 **Confirm.**

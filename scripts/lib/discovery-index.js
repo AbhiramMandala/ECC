@@ -36,14 +36,30 @@ function readFrontmatter(content) {
     return {};
   }
 
-  return match[1].split(/\r?\n/).reduce((fields, line) => {
-    const field = line.match(/^([a-zA-Z-]+):\s*(.+)$/);
+  const lines = match[1].split(/\r?\n/);
+  const fields = {};
+  for (let index = 0; index < lines.length; index += 1) {
+    const field = lines[index].match(/^([a-zA-Z-]+):\s*(.+)$/);
     if (!field) {
-      return fields;
+      continue;
     }
 
-    return { ...fields, [field[1]]: cleanYamlScalar(field[2]) };
-  }, {});
+    // YAML block scalar (`>`, `>-`, `>+`, `|`, `|-`, `|+`): the value
+    // continues on the following indented lines. Without this the indicator
+    // itself (e.g. `>-`) is stored as the description.
+    if (/^[>|][+-]?$/.test(field[2].trim())) {
+      const body = [];
+      while (index + 1 < lines.length && /^[ \t]+/.test(lines[index + 1])) {
+        body.push(lines[index + 1].trim());
+        index += 1;
+      }
+      fields[field[1]] = cleanYamlScalar(body.join(' '));
+      continue;
+    }
+
+    fields[field[1]] = cleanYamlScalar(field[2]);
+  }
+  return fields;
 }
 
 function firstParagraph(content) {

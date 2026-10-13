@@ -7,10 +7,12 @@ const assert = require('assert');
 const { MILESTONES, OPT_OUT_ENV, emptyState, isOptedOut, normalizeState, recordMilestone, selectMilestone, successFeedbackLines } = require('../../scripts/lib/success-feedback');
 
 let failures = 0;
+let passed = 0;
 
 function test(name, fn) {
   try {
     fn();
+    passed += 1;
     console.log(`  ✓ ${name}`);
   } catch (error) {
     failures += 1;
@@ -72,6 +74,14 @@ test('invalid session counts never prompt', () => {
   assert.strictEqual(selectMilestone('9', emptyState()), null);
 });
 
+test('unknown persisted milestones do not retire valid ones', () => {
+  // Regression: normalizeState used to accept every integer, so a state with
+  // prompted [999] made every real milestone look already asked.
+  const state = normalizeState({ version: emptyState().version, prompted: [999] });
+  assert.deepStrictEqual([...state.prompted], []);
+  assert.strictEqual(selectMilestone(MILESTONES[0], state), MILESTONES[0]);
+});
+
 test('opt-out is respected and defaults to off', () => {
   assert.strictEqual(isOptedOut({}), false);
   assert.strictEqual(isOptedOut({ [OPT_OUT_ENV]: '' }), false);
@@ -88,8 +98,9 @@ test('prompt names the form, the privacy stance, and the opt-out', () => {
   assert.ok(lines.join('\n').includes(OPT_OUT_ENV), 'missing opt-out hint');
 });
 
+console.log(`\nResults: Passed: ${passed}, Failed: ${failures}`);
 if (failures > 0) {
-  console.log(`\n${failures} test(s) failed`);
+  console.log(`${failures} test(s) failed`);
   process.exit(1);
 }
 

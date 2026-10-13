@@ -9,17 +9,34 @@ const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { spawnSync } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 
 const HOOK = path.join(__dirname, '..', '..', 'scripts', 'hooks', 'success-feedback-prompt.js');
 const { MILESTONES, OPT_OUT_ENV } = require('../../scripts/lib/success-feedback');
-const { STATE_FILENAME } = require('../../scripts/hooks/success-feedback-prompt');
+const { STATE_FILENAME, LOCK_DIRNAME } = require('../../scripts/hooks/success-feedback-prompt');
 
 let failures = 0;
+let passed = 0;
+const pending = [];
 
 function test(name, fn) {
   try {
-    fn();
+    const result = fn();
+    if (result && typeof result.then === 'function') {
+      pending.push(result.then(
+        () => {
+          passed += 1;
+          console.log(`  ✓ ${name}`);
+        },
+        error => {
+          failures += 1;
+          console.log(`  ✗ ${name}`);
+          console.log(`    ${error.message}`);
+        }
+      ));
+      return;
+    }
+    passed += 1;
     console.log(`  ✓ ${name}`);
   } catch (error) {
     failures += 1;
@@ -160,9 +177,70 @@ test('state file is never left partially written (atomic write)', () => {
   assert.doesNotThrow(() => JSON.parse(fs.readFileSync(statePath, 'utf8')), 'state file is not valid JSON');
 });
 
-if (failures > 0) {
-  console.log(`\n${failures} test(s) failed`);
-  process.exit(1);
+test('a failed state write stays silent and keeps the milestone retry-eligible', () => {
+  // Regression: the milestone must not be consumed when the prompt cannot be
+  // delivered. Blocking the state path with a directory makes the atomic
+  // write fail on every platform.
+  const { home, sessionsDir } = makeHome(MILESTONES[0]);
+  const statePath = path.join(sessionsDir, STATE_FILENAME);
+  fs.mkdirSync(statePath);
+
+  const silent = runHookCapturingStderr(home);
+  assert.strictEqual(silent.code, 0);
+  assert.strictEqual(silent.stderr.trim(), '', 'prompted despite failed state write');
+
+  fs.rmdirSync(statePath);
+  const retry = runHookCapturingStderr(home);
+  assert.strictEqual(retry.code, 0);
+  assert.ok(retry.stderr.includes('quick-feedback.yml'), 'milestone was consumed without delivery');
+});
+
+function runHookConcurrent(home) {
+  return new Promise(resolve => {
+    const env = { ...process.env, ECC_AGENT_DATA_HOME: home };
+    delete env[OPT_OUT_ENV];
+    const child = spawn('node', [HOOK], { env });
+    let stderr = '';
+    child.stderr.on('data', chunk => {
+      stderr += chunk;
+    });
+    child.on('error', () => resolve({ code: 1, stderr }));
+    child.on('close', code => resolve({ code: Number.isInteger(code) ? code : 1, stderr }));
+    child.stdin.end();
+  });
 }
 
-console.log('\nAll success-feedback-prompt hook tests passed');
+test('a lock held by another process silences this run without failing', () => {
+  const { home, sessionsDir } = makeHome(MILESTONES[0]);
+  fs.mkdirSync(path.join(sessionsDir, LOCK_DIRNAME));
+
+  const whileHeld = runHookCapturingStderr(home);
+  assert.strictEqual(whileHeld.code, 0);
+  assert.strictEqual(whileHeld.stderr.trim(), '', 'prompt printed while another process held the claim');
+
+  fs.rmdirSync(path.join(sessionsDir, LOCK_DIRNAME));
+  const afterRelease = runHookCapturingStderr(home);
+  assert.strictEqual(afterRelease.code, 0);
+  assert.ok(afterRelease.stderr.includes('quick-feedback.yml'), 'no prompt after the claim was released');
+});
+
+test('concurrent runs print the milestone exactly once', async () => {
+  const { home } = makeHome(MILESTONES[0]);
+  const results = await Promise.all([1, 2, 3, 4].map(() => runHookConcurrent(home)));
+
+  for (const result of results) {
+    assert.strictEqual(result.code, 0);
+  }
+  const prompts = results.filter(result => result.stderr.includes('quick-feedback.yml'));
+  assert.strictEqual(prompts.length, 1, `expected exactly one prompt, got ${prompts.length}`);
+});
+
+Promise.all(pending).then(() => {
+  console.log(`\nResults: Passed: ${passed}, Failed: ${failures}`);
+  if (failures > 0) {
+    console.log(`${failures} test(s) failed`);
+    process.exit(1);
+  }
+
+  console.log('\nAll success-feedback-prompt hook tests passed');
+});
