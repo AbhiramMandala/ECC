@@ -859,7 +859,7 @@ Stable graduation of the 2.0 line: control-pane substrate, worktree lifecycle se
 ```text
 ECC/
 |-- agents/           # 71 specialized subagents for delegation
-|-- skills/           # 311 reusable workflows loaded on demand
+|-- skills/           # 312 reusable workflows loaded on demand
 |-- commands/         # 97 maintained slash-command shims
 |-- rules/            # opt-in common and language standards
 |-- hooks/            # runtime automation and enforcement

@@ -62,10 +62,32 @@ export function parseConfig(raw: any): Config {
   return raw.config ?? {}
 }
 
-// Good: unknown forces safe narrowing at the edge
+interface Config {
+  timeout: number
+  retries: number
+}
+
+const DEFAULT_CONFIG: Config = { timeout: 30_000, retries: 3 }
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function toPositiveInt(value: unknown, field: string): number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
+    throw new TypeError(`Expected ${field} to be a positive integer`)
+  }
+  return value
+}
+
+// Good: unknown forces safe narrowing at the edge. Every consumed field is
+// validated with an explicit range, and defaults are declared up front.
 export function parseConfig(raw: unknown): Config {
-  const value = isConfig(raw) ? raw : {}
-  return { timeout: value.timeout ?? 30_000, retries: value.retries ?? 3 }
+  if (!isRecord(raw)) return { ...DEFAULT_CONFIG }
+  return {
+    timeout: raw.timeout === undefined ? DEFAULT_CONFIG.timeout : toPositiveInt(raw.timeout, 'timeout'),
+    retries: raw.retries === undefined ? DEFAULT_CONFIG.retries : toPositiveInt(raw.retries, 'retries'),
+  }
 }
 ```
 
@@ -216,10 +238,12 @@ Prefer type predicates and assertion functions over unchecked casts when guardin
 
 ```typescript
 function isConfig(value: unknown): value is Config {
+  if (typeof value !== 'object' || value === null) return false
+  if (!('timeout' in value) || !('retries' in value)) return false
+  const { timeout, retries } = value
   return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof (value as Config).timeout === 'number'
+    typeof timeout === 'number' && Number.isInteger(timeout) && timeout > 0 &&
+    typeof retries === 'number' && Number.isInteger(retries) && retries > 0
   )
 }
 ```
@@ -255,12 +279,26 @@ The `try/catch` belongs where the caller can act on failure — not wrapped arou
 ```typescript
 type User = { id: string; email: string }
 
+function isUser(value: unknown): value is User {
+  if (typeof value !== 'object' || value === null) return false
+  if (!('id' in value) || !('email' in value)) return false
+  const { id, email } = value
+  return (
+    typeof id === 'string' && id.length > 0 &&
+    typeof email === 'string' && email.includes('@')
+  )
+}
+
 async function loadUser(userId: string): Promise<User> {
   const response = await fetch(`/users/${userId}`)
   if (!response.ok) {
     throw new Error(`Failed to load user ${userId}: ${response.status}`)
   }
-  return response.json() as Promise<User>
+  const data: unknown = await response.json()
+  if (!isUser(data)) {
+    throw new TypeError(`Invalid user payload for ${userId}`)
+  }
+  return data
 }
 
 export async function getUser(userId: string): Promise<User> {
@@ -278,7 +316,7 @@ export async function getUser(userId: string): Promise<User> {
 
 ### Result Types for Expected Failures
 
-For expected business failures (validation, not-found, conflict), a discriinated `Result` union makes failure explicit in the type instead of hiding it in the exception flow.
+For expected business failures (validation, not-found, conflict), a discriminated `Result` union makes failure explicit in the type instead of hiding it in the exception flow.
 
 ```typescript
 type Result<T, E> = { ok: true; value: T } | { ok: false; error: E }
@@ -330,6 +368,9 @@ async function mapWithConcurrency<T, R>(
   limit: number,
   mapper: (item: T) => Promise<R>
 ): Promise<R[]> {
+  if (!Number.isInteger(limit) || limit < 1) {
+    throw new RangeError(`Expected concurrency limit to be a positive integer, got: ${limit}`)
+  }
   const results: R[] = new Array(items.length)
   let nextIndex = 0
 
@@ -337,10 +378,17 @@ async function mapWithConcurrency<T, R>(
     while (true) {
       const index = nextIndex++
       if (index >= items.length) return
-      results[index] = await mapper(items[index])
+      // Required under noUncheckedIndexedAccess: the index is proven
+      // in-bounds above, but the compiler still types this T | undefined.
+      // (For sparse arrays this skips holes, mirroring Array.prototype.map.)
+      const item = items[index]
+      if (item === undefined) continue
+      results[index] = await mapper(item)
     }
   })
 
+  // One worker rejecting rejects the whole pool; no worker is left hanging
+  // because Promise.all propagates the first rejection to the caller.
   await Promise.all(workers)
   return results
 }
@@ -502,7 +550,17 @@ The `typescript-eslint` recommended-type-checked ruleset is the practical defaul
 - **Giant god types** — a single interface that models several unrelated shapes should be a discriminated union or several interfaces.
 - **Optional-only option objects** — `allOptional` config types silently swallow typos at the call site; prefer required fields for the ones the function genuinely depends on.
 - **Silent catch** — `catch {}` or `catch (e) { /* nothing */ }` hides failures the caller assumed were handled.
-- **Mixing sync and async error paths** — throwing sync errors out of an async function lets them escape as rejected promises inconsistently; pick the async path everywhere or nowhere.
+- **Mixing sync and async error paths** — an `async` function always surfaces throws as rejections, even before the first `await`. Only a non-`async` function returning a promise can throw synchronously (before returning it), forcing callers to handle two error shapes. Prefer `async` throughout so every failure is a rejection:
+
+```typescript
+async function asyncFails(): Promise<never> {
+  throw new Error('becomes a rejection, never a sync throw')
+}
+
+function lazyFails(): Promise<never> {
+  throw new Error('throws synchronously — needs try/catch AND .catch')
+}
+```
 
 **Remember**: the type system is a proof tool, not a paperwork burden. When a type error resists a reasonable annotation, the design — not the compiler — is usually the thing to change. Prefer boring, explicit, well-scoped TypeScript over clever type engines.
 
