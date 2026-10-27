@@ -116,9 +116,11 @@ async function mapWithConcurrency(items, limit, mapper) {
     while (true) {
       const index = nextIndex++;
       if (index >= items.length) return;
-      const item = items[index];
-      if (item === undefined) continue;
-      results[index] = await mapper(item);
+      // Skip only genuine sparse-array holes, mirroring Array.prototype.map:
+      // a present `undefined` element is a legitimate value and must still
+      // reach the mapper.
+      if (!Object.hasOwn(items, index)) continue;
+      results[index] = await mapper(items[index]);
     }
   });
   await Promise.all(workers);
@@ -201,12 +203,63 @@ test('mapWithConcurrency rejects fractional and non-finite limits', async () => 
   await assert.rejects(mapWithConcurrency([1], Infinity, async x => x), RangeError);
 });
 
-test('mapWithConcurrency preserves order when mappers finish out of order', async () => {
-  const delays = [30, 5, 15, 1];
-  const out = await mapWithConcurrency([0, 1, 2, 3], 4, async x => {
-    await new Promise(resolve => setTimeout(resolve, delays[x]));
+test('mapWithConcurrency maps a present undefined element', async () => {
+  const seen = [];
+  const out = await mapWithConcurrency([undefined, 1], 2, async x => {
+    seen.push(x);
+    return x === undefined ? 0 : x;
+  });
+  assert.deepStrictEqual(seen, [undefined, 1]);
+  assert.deepStrictEqual(out, [0, 1]);
+});
+
+test('mapWithConcurrency skips only genuine sparse-array holes', async () => {
+  // Index 1 is a real hole; index 0 holds a present `undefined` value.
+  const input = new Array(3);
+  input[0] = undefined;
+  input[2] = 3;
+  const seen = [];
+  const out = await mapWithConcurrency(input, 3, async x => {
+    seen.push(x);
+    return x === undefined ? 'was-undefined' : x;
+  });
+  // The hole never reaches the mapper; the present undefined does.
+  assert.deepStrictEqual(seen, [undefined, 3]);
+  assert.strictEqual(out[0], 'was-undefined');
+  assert.strictEqual(out[2], 3);
+  assert.ok(!(1 in out), 'hole at index 1 should stay a hole in the result, not become a value');
+  assert.strictEqual(out.length, 3);
+});
+
+function deferred() {
+  let release;
+  const promise = new Promise(resolve => { release = resolve; });
+  return { promise, release };
+}
+
+test('mapWithConcurrency preserves order when mappers complete out of their input order', async () => {
+  const gates = [deferred(), deferred(), deferred(), deferred()];
+  const started = [];
+  const completed = [];
+  const resultPromise = mapWithConcurrency([0, 1, 2, 3], 4, async x => {
+    started.push(x);
+    await gates[x].promise;
+    completed.push(x);
     return x * 10;
   });
+  // No gate has been released yet, so having every mapper started proves
+  // concurrency happened before any completion.
+  await Promise.resolve();
+  assert.deepStrictEqual(started, [0, 1, 2, 3]);
+  // Release the gates in reverse input order and record the actual
+  // completion order; determinism comes from the gates, not timers.
+  for (let i = 3; i >= 0; i -= 1) {
+    gates[i].release();
+  }
+  const out = await resultPromise;
+  assert.deepStrictEqual(completed, [3, 2, 1, 0]);
+  // The completion order differs from input order, yet results still land
+  // in input order.
   assert.deepStrictEqual(out, [0, 10, 20, 30]);
 });
 

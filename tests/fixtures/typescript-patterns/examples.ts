@@ -85,9 +85,14 @@ export namespace ConcurrencyExample {
       while (true) {
         const index = nextIndex++;
         if (index >= items.length) return;
-        const item = items[index];
-        if (item === undefined) continue;
-        results[index] = await mapper(item);
+        // Skip only genuine sparse-array holes, mirroring Array.prototype.map:
+        // a present `undefined` element is a legitimate value and must still
+        // reach the mapper.
+        if (!Object.hasOwn(items, index)) continue;
+        // Presence is proven above, so the indexed access is in-bounds and
+        // filled — the non-null removal applies only to the compiler's
+        // speculative undefined under noUncheckedIndexedAccess.
+        results[index] = await mapper(items[index]!);
       }
     });
 
